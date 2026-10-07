@@ -1,0 +1,18 @@
+# ============================================================
+# tpv  —  Model variant: TPV-Tiny
+# ============================================================
+# Minimal model for fast iteration, edge inference, ablations.
+# ~5M parameters. Suitable for MPS / CPU.
+# ============================================================
+
+inherits: base.yaml
+variant: tpv_tiny
+
+model:
+  backbone: resnet50
+  embed_dims: 64
+  num_heads: 4
+  num_encoder_layers: 2
+  num_decoder_layers: 2
+  feedforward_channels: 256
+  dropout: 0.1

@@ -1,0 +1,155 @@
+# ============================================================
+# tpv  —  Base configuration
+# Tri-Perspective View (TPV) encoder for 3D scene understanding.
+# ============================================================
+
+variant: tpv_base
+
+# ------------------------------------------------------------------
+# Model
+# ------------------------------------------------------------------
+model:
+  architecture: tpv             # tpv | tpv_former | tpv_lite
+
+  # Backbone
+  backbone: resnet50            # resnet50 | resnet101 | swin_t | swin_b
+  backbone_pretrained: true
+  backbone_freeze: false
+
+  # Image encoder
+  img_size: [224, 400]          # [H, W]
+  img_backbone_out_indices: [1, 2, 3]
+  in_chans: 3
+
+  # TPV encoder
+  tpv_h: 200                    # BEV grid H (x-axis)
+  tpv_w: 200                    # BEV grid W (y-axis)
+  tpv_z: 16                     # vertical axis (z)
+  tpv_num_points_in_pillar: 4
+  tpv_num_points_in_pillar_cross_view: [8, 8, 8]
+
+  # Transformer
+  embed_dims: 128
+  num_heads: 8
+  num_encoder_layers: 3
+  num_decoder_layers: 3
+  feedforward_channels: 512
+  dropout: 0.1
+  act_cfg: gelu                 # gelu | relu
+  norm_cfg: ln                  # ln | bn
+
+  # BEV queries
+  use_positional_encoding: true
+  positional_encoding_type: learned   # learned | sinusoidal
+
+  # Camera geometry
+  n_cameras: 6                  # number of surround cameras
+  use_camera_mask: true
+  z_bounds: [-2.0, 2.0]        # [z_min, z_max] in metres
+
+  # Output heads
+  heads:
+    bev_seg:
+      enabled: true
+      n_classes: 6
+    occ_3d:
+      enabled: false
+      n_classes: 17
+      voxel_shape: [200, 200, 16]
+    depth:
+      enabled: false
+
+# ------------------------------------------------------------------
+# Training
+# ------------------------------------------------------------------
+train:
+  epochs: 24
+  batch_size: 4
+  lr: 2.0e-4
+  warmup_epochs: 1
+  lr_scheduler: cosine          # cosine | step | onecycle
+  weight_decay: 0.01
+  grad_clip: 35.0
+  grad_accum_steps: 1
+  dtype: float32
+  resume: false
+  checkpoint_dir: data/checkpoints
+  checkpoint_every_n_epochs: 4
+  keep_last_n_checkpoints: 3
+  seed: 42
+  loss:
+    bev_seg_weight: 1.0
+    occ_weight: 1.0
+    depth_weight: 0.5
+
+# ------------------------------------------------------------------
+# Data
+# ------------------------------------------------------------------
+data:
+  source: synthetic             # synthetic | nuscenes | waymo | argoverse2
+  stage: pretrain               # pretrain | mid_train | post_train
+  # Synthetic (pretrain)
+  synthetic:
+    length: 50000
+    n_cameras: 6
+    seed: 0
+  # nuScenes (mid/post-train)
+  nuscenes:
+    data_root: null             # set to /path/to/nuscenes
+    version: v1.0-trainval
+    map_classes:
+      - drivable_surface
+      - ped_crossing
+      - walkway
+      - stop_line
+      - carpark_area
+      - divider
+  # Waymo
+  waymo:
+    data_root: null
+  # Argoverse2
+  argoverse2:
+    data_root: null
+  # Shared
+  train_split: train
+  val_split: val
+  img_size: [224, 400]
+  num_workers: 4
+  streaming: false
+
+# ------------------------------------------------------------------
+# Logging
+# ------------------------------------------------------------------
+logging:
+  backend: tensorboard          # noop | tensorboard | wandb
+  tensorboard: false
+  log_every_n_steps: 50
+
+# ------------------------------------------------------------------
+# Experiment
+# ------------------------------------------------------------------
+experiment:
+  enabled: true
+  root: data/experiments
+
+# ------------------------------------------------------------------
+# Evaluation
+# ------------------------------------------------------------------
+eval:
+  enabled: true
+  every_n_epochs: 4
+  metrics:
+    - miou_bev
+    - miou_occ
+  visualise_pred: false
+
+# ------------------------------------------------------------------
+# Deployment
+# ------------------------------------------------------------------
+deploy:
+  enabled: false
+  backend: pytorch              # pytorch | onnx | tensorrt
+  device: cpu
+  dtype: float32
+  compile: false
+  export_path: data/exports

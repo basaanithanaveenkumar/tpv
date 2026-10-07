@@ -1,0 +1,46 @@
+# ============================================================
+# tpv  —  Phase 2: Mid-training on Waymo Open Dataset
+# ============================================================
+# Proxy mode active when waymo.data_root is null.
+#
+# Full data requires:
+#   pip install waymo-open-dataset-tf-nightly
+#   + Waymo license acceptance
+# ============================================================
+
+inherits: base.yaml
+
+data:
+  source: waymo
+  stage: mid_train
+  waymo:
+    data_root: null             # null → synthetic proxy (no download)
+    split: training
+  img_size: [640, 960]          # Waymo front-cam resolution
+  num_workers: 4
+
+train:
+  epochs: 24
+  batch_size: 2
+  lr: 1.5e-4
+  warmup_epochs: 2
+  lr_scheduler: cosine
+  grad_clip: 35.0
+
+model:
+  n_cameras: 5                  # Waymo uses 5 cameras
+  tpv_h: 144
+  tpv_w: 144
+  tpv_z: 16
+  heads:
+    bev_seg:
+      enabled: true
+      n_classes: 6
+    depth:
+      enabled: true
+
+eval:
+  enabled: true
+  every_n_epochs: 4
+  metrics:
+    - miou_bev

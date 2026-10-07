@@ -1,0 +1,35 @@
+# ============================================================
+# tpv  —  Deployment: ONNX / TorchScript export
+# ============================================================
+# Exports the TPV encoder for downstream use in robot perception
+# pipelines (ROS2, NVIDIA Jetson, on-board GPU).
+# ============================================================
+
+inherits: base.yaml
+
+deploy:
+  enabled: true
+  backend: onnx                 # onnx | torchscript | pytorch
+  device: cpu
+  dtype: float32
+  compile: false
+  export_path: data/exports
+  onnx:
+    opset_version: 17
+    dynamic_axes:
+      images: [0, 1]            # batch and camera dims dynamic
+    simplify: true
+    verify_outputs: true
+    atol: 1.0e-3
+
+model:
+  heads:
+    bev_seg:
+      enabled: true
+    occ_3d:
+      enabled: false            # export BEV head only by default
+    depth:
+      enabled: false
+
+train:
+  steps: 0                      # export-only

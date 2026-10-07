@@ -1,0 +1,50 @@
+# ============================================================
+# tpv  —  Phase 1: Pre-training on synthetic scenes
+# ============================================================
+# Trains the TPV encoder on infinite procedurally-generated
+# multi-camera 3D scenes. No external data required.
+# Goal: learn camera geometry and feature lifting from scratch.
+# ============================================================
+
+inherits: base.yaml
+
+data:
+  source: synthetic
+  stage: pretrain
+  synthetic:
+    length: 500000
+    n_cameras: 6
+    seed: 0
+  num_workers: 4
+
+train:
+  epochs: 12
+  batch_size: 16
+  lr: 2.0e-4
+  warmup_epochs: 1
+  lr_scheduler: cosine
+  grad_clip: 10.0
+  dtype: float32
+  checkpoint_every_n_epochs: 2
+
+model:
+  backbone_freeze: true         # freeze backbone during initial pretrain
+  heads:
+    bev_seg:
+      enabled: true
+      n_classes: 6
+    occ_3d:
+      enabled: false
+    depth:
+      enabled: true             # depth supervision from synthetic ground truth
+
+logging:
+  backend: tensorboard
+  tensorboard: true
+  log_every_n_steps: 100
+
+eval:
+  enabled: true
+  every_n_epochs: 2
+  metrics:
+    - miou_bev

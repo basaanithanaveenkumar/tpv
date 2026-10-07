@@ -1,0 +1,59 @@
+# ============================================================
+# tpv  —  Phase 3: Post-training on Occ3D occupancy
+# ============================================================
+# Fine-tunes for 3D semantic occupancy prediction.
+# 200×200×16 voxel grid, 17 semantic classes (Occ3D labels).
+#
+# Requires: nuScenes v1.0-trainval + Occ3D annotation labels
+# Paper: https://arxiv.org/abs/2304.14365
+# ============================================================
+
+inherits: base.yaml
+
+data:
+  source: nuscenes
+  stage: post_train
+  nuscenes:
+    data_root: null             # REQUIRED: /path/to/nuscenes
+    version: v1.0-trainval
+    occ_root: null              # REQUIRED: /path/to/occ3d/labels
+    occ_classes: 17
+  train_split: train
+  val_split: val
+  img_size: [448, 800]
+  num_workers: 4
+
+train:
+  epochs: 12
+  batch_size: 2
+  lr: 1.0e-4
+  warmup_epochs: 1
+  lr_scheduler: cosine
+  weight_decay: 0.01
+  grad_clip: 35.0
+  grad_accum_steps: 4
+  checkpoint_every_n_epochs: 2
+  loss:
+    bev_seg_weight: 0.5
+    occ_weight: 2.0             # emphasise the new occ head
+    depth_weight: 0.0
+
+model:
+  heads:
+    bev_seg:
+      enabled: true
+      n_classes: 6
+    occ_3d:
+      enabled: true             # activate the 3D occupancy head
+      n_classes: 17
+      voxel_shape: [200, 200, 16]
+    depth:
+      enabled: false
+
+eval:
+  enabled: true
+  every_n_epochs: 2
+  metrics:
+    - miou_bev
+    - miou_occ
+  visualise_pred: true
